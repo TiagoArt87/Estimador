@@ -53,7 +53,7 @@ class Multiprocessamento():
             mat1_slice = self.mat1[divisao[i] : divisao[i + 1], :]
             mat_slices.append(mat1_slice)
                 
-        with concurrent.futures.ProcessPoolExecutor() as executor: # realiza as multiplicações matriciais
+        with concurrent.futures.ThreadPoolExecutor() as executor: # realiza as multiplicações matriciais
             results = executor.map(self.mult_mat, mat_slices) 
         
         results_list = []
