@@ -57,9 +57,29 @@ def residuos_normalizados(r, omega):
     for i in range(len(r)):
         x = r[i]*10**10
         y = omega[i][i]*10**20
+        if i == 3:
+            print(r[i], omega[i][i])
+            print(x, y, (abs(y)**0.5))
         Rn.append(abs(x)/((abs(y)**0.5)))
 
     return Rn 
+
+def inovation_index(Rn, r, p, s):
+    # Implementação do inovation index, proposto por Newton Bretas e utilizado como referência por Lívia Raggi
+    # A Geometrical View for Multiple Gross Errors Detection, Identification, and Correction in Power System 
+    # State Estimation Newton G. Bretas
+    ed = r
+    eu = []
+    ii = []
+    cne = []
+    erro = []
+    for i in range(len(p)):
+        ii.append(abs(s[i])/abs(p[i]))
+        eu.append((1+1/ii[i])*ed[i])
+        cne.append(((1+1/(ii[i]**2))**0.5)*Rn[i])
+        erro.append((abs(ed[i])**2+abs(eu[i])**2)**0.5)
+
+    return cne, erro
 
 def plot(Rn, nodes, residuos_acima):
     tam = len(Rn)//3
@@ -123,14 +143,13 @@ def analise_rn(phi_k, Rn, nodes, residuos_acima):
     
     plot(Rn, nodes, residuos_acima)
 
-def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD):
+def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD, printar: False):
     correcao = False
     nodes = eesd.nodes
     dp = eesd.dp
     barras = eesd.barras
     eesd_novo = eesd
     it = 0
-    printar = True
     # print(nodes)
 
     while correcao == False:
@@ -145,8 +164,6 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
         Rn = residuos_normalizados(r, omega)
           
         tam = len(Rn)//3
-        # print(max(Rn))
-        # print(tam)
         Rn_at = Rn[:tam]
         Rn_reat = Rn[tam:tam*2]
         Rn_tensao = Rn[tam*2:]
@@ -176,19 +193,17 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
             # Cálculo dos erros
             max_k = max(phi_k.keys(), key=(lambda key: Rn[key]))
             node = list(filter(lambda x: nodes[x] == max_k+3, nodes))[0]
-            erro_estimado = []
-            cne_at = ((1+(p[max_k])/(1-s[max_k]))**0.5)*Rn[max_k]
-            cne_reat = ((1+(p[2*max_k])/(1-s[2*max_k]))**0.5)*Rn[2*max_k]
-            cne_tensao = ((1+(p[3*max_k])/(1-s[3*max_k]))**0.5)*Rn[3*max_k]
+            cne, erro = inovation_index(Rn,r,p,s)
             
             # Pegar node
             barra, fase = node.split('.')
             fase = int(fase)-1
 
-            erro_estimado = cne_at*dp[max_k]
+            erro_estimado = cne[max_k]*dp[max_k]
+            #print(f'O erro calculado foi {erro[max_k]}, já o CNE foi de {cne[max_k]}, o erro estimado foi {erro_estimado}')
 
             # Formular a correção da medição
-            conserta_pnt = [barra, fase, erro_estimado]
+            conserta_pnt = [barra, fase, erro[max_k]]
             print(conserta_pnt)
 
             eesd_novo = EESD.EESD(MasterFile, baseva, verbose, pnt, [conserta_pnt])
@@ -198,6 +213,7 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
             if it == 2:
                 correcao = True
         else:
-            analise_rn({}, Rn, nodes, [])
+            if printar == True:
+                analise_rn({}, Rn, nodes, [])
             print('Provavelmente não há erros grosseiros no conjunto de medidas apresentado')
             correcao = True

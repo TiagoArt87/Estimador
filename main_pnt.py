@@ -26,7 +26,8 @@ def main():
     # '13Bus' / 'IEEE13Nodeckt.dss'
     # '123Bus_PV' / 'IEEE123Master.dss'
     
-    verbose = False
+    verbose = True
+    printar = False
     
     baseva =  33.3 * 10**6
 
@@ -48,7 +49,7 @@ def main():
 
     gabarito = get_gabarito(eesd)
     
-    correcao_pnt(MasterFile, baseva, verbose, pnt, eesd)
+    correcao_pnt(MasterFile, baseva, verbose, pnt, eesd, printar)
 
     # Comentários:
     if 'comentario'=='comentario':

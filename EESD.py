@@ -487,7 +487,6 @@ class EESD():
         if self.conserta_pnt != []:
             for k in self.conserta_pnt:
                 [barra_pnt, fase_pnt, perda] = k
-                print(barra_pnt)
                 # As bases de tensão estão em kV
                 barra_pnt = self.barras.index[self.barras['nome_barra'] == barra_pnt].to_list()[0]
                 medida = self.barras['Inj_pot_at'][barra_pnt][fase_pnt]
