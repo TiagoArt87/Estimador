@@ -57,12 +57,14 @@ def residuos_normalizados(r, omega):
     for i in range(len(r)):
         x = r[i]*10**10
         y = omega[i][i]*10**20
-        if i == 3:
-            print(r[i], omega[i][i])
-            print(x, y, (abs(y)**0.5))
         Rn.append(abs(x)/((abs(y)**0.5)))
 
-    return Rn 
+    tam = len(Rn)//3
+    Rn_at = Rn[:tam]
+    Rn_reat = Rn[tam:tam*2]
+    Rn_tensao = Rn[tam*2:]
+
+    return Rn, Rn_at, Rn_reat, Rn_tensao
 
 def inovation_index(Rn, r, p, s):
     # Implementação do inovation index, proposto por Newton Bretas e utilizado como referência por Lívia Raggi
@@ -88,39 +90,36 @@ def plot(Rn, nodes, residuos_acima):
     Rn_tensao = Rn[tam*2:]
     x = np.arange(0, tam, 1)
     y = [0, tam, 0, 15]
-    plt.plot(x, Rn_at, 'ro')
-    plt.axis(y)
-    plt.suptitle('Resíduos normalizados de potência ativa')
-    plt.show()
-    plt.plot(x, Rn_reat, 'ro')
-    plt.axis(y)
-    plt.suptitle('Resíduos normalizados de potência reativa')
-    plt.show()
-    plt.plot(x, Rn_tensao, 'ro')
-    plt.axis(y)
-    plt.suptitle('Resíduos normalizados de tensão')
+    plt.scatter(x, Rn_at, color='tab:blue')
+    plt.scatter(x, Rn_reat, color='tab:orange')
+    plt.scatter(x, Rn_tensao, color='tab:green')
+    plt.suptitle('Resíduos normalizados')
+    plt.legend(['Rn Potência Ativa', 'Rn Potência Reativa', 'Rn Tensão'], bbox_to_anchor = (1 , 1))
     plt.show()
     
     if residuos_acima != []:
         results_at, results_reat, results_tensao = [], [], []
         x = []
+        residuos_normalizados = {}
         for i in residuos_acima:
             results_at.append(Rn_at[i])
             results_reat.append(Rn_reat[i])
             results_tensao.append(Rn_tensao[i])
-            node = list(filter(lambda x: nodes[x] == i+3, nodes))[0]
+            node = list(filter(lambda var: nodes[var] == i+3, nodes))[0]
+            residuos_normalizados[node] = [Rn_at[i], Rn_reat[i], Rn_tensao[i]]
             x.append(node)
 
-        plt.bar(x, results_at)
-        plt.suptitle('Resíduos normalizados de potência ativa acima de 3')
-        plt.show()
-        plt.bar(x, results_reat)
-        plt.suptitle('Resíduos normalizados de potência reativa acima de 3')
-        plt.show()
-        plt.bar(x, results_tensao)
-        plt.suptitle('Resíduos normalizados de tensão acima de 3')
-        plt.show()
+        length = np.arange(len(x)) 
+        width = 0.3
 
+        plt.bar(length-0.3, results_at, width, color='tab:blue') 
+        plt.bar(length, results_reat, width, color='tab:orange') 
+        plt.bar(length+0.3, results_tensao, width, color='tab:green') 
+        plt.xticks(length, x) 
+        plt.xlabel("Barras") 
+        plt.ylabel("Magnitude") 
+        plt.legend(['Rn Potência Ativa', 'Rn Potência Reativa', 'Rn Tensão'], bbox_to_anchor = (1 , 1)) 
+        plt.show()
     pass
 
 def analise_rn(phi_k, Rn, nodes, residuos_acima):
@@ -143,7 +142,67 @@ def analise_rn(phi_k, Rn, nodes, residuos_acima):
     
     plot(Rn, nodes, residuos_acima)
 
-def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD, printar: False):
+def listar_residuos_acima(Rn, metodo):
+    tam = len(Rn)//3
+    Rn_at = Rn[:tam]
+    Rn_reat = Rn[tam:tam*2]
+    Rn_tensao = Rn[tam*2:]
+    residuos_acima = []
+
+    if metodo == 'livia':
+        # Checa se os resíduos normalizados estão maiores que 3
+        for i in range(tam):
+            if Rn_at[i]>3 or Rn_reat[i]>3:
+                residuos_acima.append(i)
+
+    elif metodo == 'tiago':
+        for i in range(tam):
+            if Rn_at[i]*Rn_reat[i]*Rn_tensao[i]>3:
+                residuos_acima.append(i)
+    
+    return residuos_acima
+
+def obter_phi_k(metodo, Rn, residuos_acima, nodes):
+    tam = len(Rn)//3
+    Rn_at = Rn[:tam]
+    Rn_reat = Rn[tam:tam*2]
+    Rn_tensao = Rn[tam*2:]
+    phi_k = {}
+    at_ou_reat ={}
+    if metodo == 'livia':
+        for k in residuos_acima:
+            # Por enquanto, apenas para potência ativa
+            phi_k[k] = max(abs(Rn_at[k]),abs(Rn_reat[k]))-abs(Rn_tensao[k])
+            if Rn_reat[k]>Rn_at[k]:
+                at_ou_reat[k] = 'reat'
+            else:
+                at_ou_reat[k] = 'at'
+    
+    elif metodo == 'tiago':
+        for k in residuos_acima:
+            # Por enquanto, apenas para potência ativa
+            phi_k[k] = (abs(Rn_at[k])+abs(Rn_reat[k]))*abs(Rn_tensao[k])
+            if Rn_reat[k]>Rn_at[k]:
+                at_ou_reat[k] = 'reat'
+            else:
+                at_ou_reat[k] = 'at'
+
+    max_k = max(phi_k.keys(), key=(lambda key: phi_k[key]))
+    node = list(filter(lambda x: nodes[x] == max_k+3, nodes))[0]
+
+    # Pegar node
+    barra, fase = node.split('.')
+    fase = int(fase)-1
+
+    return phi_k, max_k, barra, fase, node, at_ou_reat
+
+def atualizar_barras_afetadas(lista_barras_afetadas, node, erro_absoluto):
+    if node in lista_barras_afetadas:
+        lista_barras_afetadas[node] += erro_absoluto
+    else:
+        lista_barras_afetadas[node] = erro_absoluto
+
+def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD, printar: False, limite: 10, metodo:str):
     correcao = False
     nodes = eesd.nodes
     dp = eesd.dp
@@ -151,6 +210,13 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
     eesd_novo = eesd
     it = 0
     # print(nodes)
+    sem_erros = False
+    lista_conserta_pnt = []
+    lista_barras_afetadas = {}
+    dict_fases = {}
+    dict_fases[0] = 'a'
+    dict_fases[1] = 'b'
+    dict_fases[2] = 'c'
 
     while correcao == False:
                 
@@ -161,59 +227,52 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
         omega = np.array(matriz_covariancia_residuos_2(h,w))
 
         # Calcula-se os resíduos normalizados
-        Rn = residuos_normalizados(r, omega)
-          
-        tam = len(Rn)//3
-        Rn_at = Rn[:tam]
-        Rn_reat = Rn[tam:tam*2]
-        Rn_tensao = Rn[tam*2:]
+        Rn, Rn_at, Rn_reat, Rn_tensao = residuos_normalizados(r, omega)
 
-        residuos_acima = []
-        
-        # Checa se os resíduos normalizados estão maiores que 3
-        for i in range(tam):
-            if Rn_at[i]>3 or Rn_reat[i]>3:
-                residuos_acima.append(i)
+        residuos_acima = listar_residuos_acima(Rn, metodo)
         
         # Se houver resíduos acima, calcula-se o phi_k e o erro estimado
         if residuos_acima != []:
-            phi_k = {}
-            at_ou_reat ={}
-            for k in residuos_acima:
-                # Por enquanto, apenas para potência ativa
-                phi_k[k] = Rn_at[k]
-                if Rn_reat[k]>Rn_at[k]:
-                    at_ou_reat[k] = 'reat'
-                else:
-                    at_ou_reat[k] = 'at'
+            phi_k, max_k, barra, fase, node, at_ou_reat = obter_phi_k(metodo, Rn, residuos_acima, nodes)
 
-            if printar == True:
-                analise_rn(phi_k, Rn, nodes, residuos_acima)
-
-            # Cálculo dos erros
-            max_k = max(phi_k.keys(), key=(lambda key: Rn[key]))
-            node = list(filter(lambda x: nodes[x] == max_k+3, nodes))[0]
+            # Cálculo dos erros            
             cne, erro = inovation_index(Rn,r,p,s)
-            
-            # Pegar node
-            barra, fase = node.split('.')
-            fase = int(fase)-1
-
             erro_estimado = cne[max_k]*dp[max_k]
-            #print(f'O erro calculado foi {erro[max_k]}, já o CNE foi de {cne[max_k]}, o erro estimado foi {erro_estimado}')
+            erro_absoluto = erro[max_k]*baseva/1000
 
             # Formular a correção da medição
             conserta_pnt = [barra, fase, erro[max_k]]
-            print(conserta_pnt)
 
-            eesd_novo = EESD.EESD(MasterFile, baseva, verbose, pnt, [conserta_pnt])
+            atualizar_barras_afetadas(lista_barras_afetadas, node, erro_absoluto)
+            
+            #print(conserta_pnt)
+            lista_conserta_pnt.append(conserta_pnt)
+
+            if printar == True:
+                analise_rn(phi_k, Rn, nodes, residuos_acima)
+            
+            print(f'Corrigindo um erro de {erro_absoluto} kW na fase {dict_fases[fase]} da barra {barra}...')
+            eesd_novo = EESD.EESD(MasterFile, baseva, verbose, pnt, lista_conserta_pnt)
             vet_estados = eesd_novo.run(10**-5, 100)
 
             it+=1
-            if it == 2:
+            if it == limite:
+                print('limite de iterações atingido')
                 correcao = True
         else:
-            if printar == True:
-                analise_rn({}, Rn, nodes, [])
-            print('Provavelmente não há erros grosseiros no conjunto de medidas apresentado')
+            if it == 0:
+                if printar == True:
+                    analise_rn({}, Rn, nodes, [])
+                sem_erros == True
+                print('Provavelmente não há erros grosseiros no conjunto de medidas apresentado')
             correcao = True
+    
+    if sem_erros == False:
+        for i in lista_barras_afetadas:
+            barra, fase = i.split('.')
+            fase = int(fase)-1
+            perda = lista_barras_afetadas[i]
+            print(f'Foi corrigida uma perda de {perda} kW na fase {dict_fases[fase]} da barra {barra}')
+        if it != 0:
+            print(f'Não há mais erros no sistema apresentado')
+        
