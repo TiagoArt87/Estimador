@@ -3,6 +3,7 @@ import numpy as np
 import time
 import EESD
 from PNT import correcao_pnt
+from Random import gerar_vetor_pnt
 
 def get_gabarito(eesd: EESD.EESD) -> np.array:
     ang = np.array([])
@@ -31,16 +32,20 @@ def main():
     dict = {}
     # ARGUMENTOS: primeiro: barra/ segundo: fase(a=0,b=1,c=2)/ terceiro: perda (em kW)
 
-    dict['82'] = ['82', 0, 15]
+    '''dict['82'] = ['82', 0, 15]
     dict['38'] = ['38', 1, 10]
     dict['47'] = ['47', 2, 25]
     dict['1'] = ['1', 0, 20]
     pnt = []
     for i in dict:
-        pnt.append(dict[i])
-        pass
+        #pnt.append(dict[i])
+        pass'''
 
+    eesd = EESD.EESD(MasterFile, baseva, verbose)
+    pnt = gerar_vetor_pnt(eesd, 2, baseva)
+    print(pnt)
     eesd = EESD.EESD(MasterFile, baseva, verbose, pnt)
+    # Ainda é necessário limitar as barras a serem selecinodas àquelas que possuem cargas conectadas.
     
     inicio = time.time()
     vet_estados = eesd.run(10**-5, 100)
