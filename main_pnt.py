@@ -1,10 +1,7 @@
 from pathlib import Path
-import matplotlib.pyplot as plt
 import numpy as np
 import time
 import EESD
-import Pos_filtragem
-import pandas as pd
 from PNT import correcao_pnt
 
 def get_gabarito(eesd: EESD.EESD) -> np.array:
@@ -34,9 +31,9 @@ def main():
     dict = {}
     # ARGUMENTOS: primeiro: barra/ segundo: fase(a=0,b=1,c=2)/ terceiro: perda (em kW)
 
-    dict['82'] = ['82', 0, 20]
+    dict['82'] = ['82', 0, 15]
     dict['38'] = ['38', 1, 10]
-    dict['47'] = ['47', 2, 30]
+    dict['47'] = ['47', 2, 25]
     dict['1'] = ['1', 0, 20]
     pnt = []
     for i in dict:
