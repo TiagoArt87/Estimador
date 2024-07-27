@@ -202,7 +202,21 @@ def atualizar_barras_afetadas(lista_barras_afetadas, node, erro_absoluto):
     else:
         lista_barras_afetadas[node] = erro_absoluto
 
-def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD, printar: False, limite: 10, metodo:str):
+def atualizar_listas(Rn, max_k, lista_Rn_at:list, lista_Rn_reat:list, lista_Rn_tensao:list, lista_max_k:list):
+    tam = len(Rn)//3
+    Rn_at = Rn[:tam]
+    Rn_reat = Rn[tam:tam*2]
+    Rn_tensao = Rn[tam*2:]
+    lista_Rn_at.append(Rn_at)
+    lista_Rn_reat.append(Rn_reat)
+    lista_Rn_tensao.append(Rn_tensao)
+    lista_max_k.append(max_k)
+
+    return lista_Rn_at, lista_Rn_reat, lista_Rn_tensao, lista_max_k    
+
+def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD.EESD, printar: False, limite: 10, 
+                                                                                                        metodo:str):
+    corrigido = True # Serve para sabermos se a correção foi realizada ou se o sistema parou devido ao limite de iterações.
     correcao = False
     nodes = eesd.nodes
     dp = eesd.dp
@@ -217,6 +231,10 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
     dict_fases[0] = 'a'
     dict_fases[1] = 'b'
     dict_fases[2] = 'c'
+    lista_Rn_at = []
+    lista_Rn_reat = []
+    lista_Rn_tensao = []
+    lista_max_k =[]
 
     while correcao == False:
                 
@@ -234,7 +252,7 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
         # Se houver resíduos acima, calcula-se o phi_k e o erro estimado
         if residuos_acima != []:
             phi_k, max_k, barra, fase, node, at_ou_reat = obter_phi_k(metodo, Rn, residuos_acima, nodes)
-
+            lista_Rn_at, lista_Rn_reat, lista_Rn_tensao, lista_max_k = atualizar_listas(Rn, max_k, lista_Rn_at, lista_Rn_reat, lista_Rn_tensao, lista_max_k)
             # Cálculo dos erros            
             cne, erro = inovation_index(Rn,r,p,s)
             erro_estimado = cne[max_k]*dp[max_k]
@@ -258,6 +276,7 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
             it+=1
             if it == limite:
                 print('limite de iterações atingido')
+                corrigido = False
                 correcao = True
         else:
             if it == 0:
@@ -275,4 +294,6 @@ def correcao_pnt(MasterFile, baseva: float, verbose: bool, pnt: list, eesd: EESD
             print(f'Foi corrigida uma perda de {perda} kW na fase {dict_fases[fase]} da barra {barra}')
         if it != 0:
             print(f'Não há mais erros no sistema apresentado')
+
+    return lista_Rn_at, lista_Rn_reat, lista_Rn_tensao, lista_max_k, corrigido
         

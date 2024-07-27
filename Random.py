@@ -3,7 +3,7 @@ import pandas as pd
 import random as rnd
 from EESD import EESD
 
-def gerar_vetor_pnt(eesd:EESD, k:int, baseva=3.3*10**6):
+def gerar_vetor_pnt(eesd:EESD, k:int, baseva=33.3*10**6):
     barras = eesd.barras
     nodes = eesd.nodes
     #Retirar barra de geração:

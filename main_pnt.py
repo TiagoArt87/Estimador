@@ -45,7 +45,6 @@ def main():
     pnt = gerar_vetor_pnt(eesd, 2, baseva)
     print(pnt)
     eesd = EESD.EESD(MasterFile, baseva, verbose, pnt)
-    # Ainda é necessário limitar as barras a serem selecinodas àquelas que possuem cargas conectadas.
     
     inicio = time.time()
     vet_estados = eesd.run(10**-5, 100)

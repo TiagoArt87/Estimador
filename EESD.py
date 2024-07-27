@@ -19,11 +19,13 @@ class EESD():
         self.conserta_pnt = conserta_pnt
         
         self.resolve_fluxo_carga()
-        print('Acabou o fluxo de carga')
+        if self.verbose:
+            print('Acabou o fluxo de carga')
         
         self.barras, self.num_medidas = self.medidas(self.baseva)
         self.vet_estados = self.iniciar_vet_estados()
-        print('Vetor de estados iniciado')
+        if self.verbose:
+            print('Vetor de estados iniciado')
         
         Ybus = scsp.csr_matrix(self.DSSObj.YMatrix.GetCompressedYMatrix())
         Ybus = scsp.lil_matrix(Ybus)
@@ -31,8 +33,8 @@ class EESD():
         self.Ybus, self.nodes = self.organiza_Ybus(Ybus)
 
         self.Ybus = self.Conserta_Ybus(self.Ybus)
-        
-        print('Matriz de adimitância modificada com sucesso')
+        if self.verbose:
+            print('Matriz de adimitância modificada com sucesso')
 
     def resolve_fluxo_carga(self):
         self.DSSText.Command = 'Clear'
@@ -45,11 +47,12 @@ class EESD():
     def InitializeDSS(self) -> tuple:
         DSSObj = dss_engine
         flag = DSSObj.Start(0)
-        if flag:
-            print('OpenDSS COM Interface initialized succesfully.')
-            
-        else:
-            print('OpenDSS COMInterface failed to start.')
+        if 1==2:
+            if flag:
+                print('OpenDSS COM Interface initialized succesfully.')
+                
+            else:
+                print('OpenDSS COMInterface failed to start.')
             
         #Set up the interface variables - Comunication OpenDSS with Python
         DSSText = DSSObj.Text
@@ -537,5 +540,6 @@ class EESD():
                 print(f'Os pesos da iteração {k} levaram {fim_pesos-fim_jac:.3f}s')
                 print(f'Atualizar o vetor de estados da iteração {k} levou {fim-fim_pesos:.3f}')
                 print(f'A iteração {k} levou {fim-inicio:.3f}s')
-
+        
+        print('Estimador requisitado e finalizado')
         return self.vet_estados
